@@ -1,0 +1,115 @@
+@import url("https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-altair: "Share Tech Mono", monospace;
+  --color-altair-bg: #050508;
+  --color-altair-fg: #e2e2e5;
+  --color-altair-accent: #ff3366;
+  --color-altair-secondary: #33aaff;
+}
+
+body {
+  background-color: var(--color-altair-bg);
+  color: var(--color-altair-fg);
+  font-family: var(--font-altair);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  cursor: crosshair;
+}
+
+/* Wavy text effect  */
+.wavy-text span {
+  display: inline-block;
+  animation: wavy 2.5s infinite ease-in-out;
+}
+
+@keyframes wavy {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+  75% {
+    transform: translateY(2px);
+  }
+}
+
+/* Subtle TV scanline overlay */
+body::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background:
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+    linear-gradient(
+      90deg,
+      rgba(255, 0, 0, 0.06),
+      rgba(0, 255, 0, 0.02),
+      rgba(0, 0, 255, 0.06)
+    );
+  z-index: 2;
+  background-size:
+    100% 2px,
+    3px 100%;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Glitch effect based on attr data-text */
+.glitch {
+  position: relative;
+  display: inline-block;
+}
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.8;
+}
+.glitch::before {
+  left: 3px;
+  text-shadow: -2px 0 var(--color-altair-accent);
+  clip: rect(24px, 550px, 90px, 0);
+  animation: glitch-anim 3s infinite linear alternate-reverse;
+}
+.glitch::after {
+  left: -3px;
+  text-shadow: -2px 0 var(--color-altair-secondary);
+  clip: rect(85px, 550px, 140px, 0);
+  animation: glitch-anim 2.5s infinite linear alternate-reverse;
+}
+@keyframes glitch-anim {
+  0% {
+    clip: rect(10px, 9999px, 86px, 0);
+  }
+  25% {
+    clip: rect(61px, 9999px, 20px, 0);
+  }
+  50% {
+    clip: rect(3px, 9999px, 44px, 0);
+    transform: translate(2px, -2px);
+  }
+  75% {
+    clip: rect(69px, 9999px, 91px, 0);
+  }
+  100% {
+    clip: rect(18px, 9999px, 56px, 0);
+  }
+}
+
+::selection {
+  background: var(--color-altair-secondary);
+  color: var(--color-altair-bg);
+}
