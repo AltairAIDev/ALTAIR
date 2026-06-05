@@ -12,13 +12,20 @@ let snowflakes = [];
 const numFlakes = 500; // real winter snow
 const isStarted = ref(false);
 
-// Easter egg state
+// Easter egg & Feature state
 let easterEggTriggered = false;
 let isAuroraMode = false;
 let heat = 0;
 let lastMouse = { x: null, y: null };
 let startTime = 0;
 let frostLevel = 0;
+
+// Constellations & Freeze state
+let stars = [];
+const numStars = 80;
+let lastActiveTime = Date.now();
+let isFrozen = false;
+let clicksOnIce = 0;
 
 const initSnow = () => {
   const canvas = canvasRef.value;
@@ -42,9 +49,19 @@ const initSnow = () => {
       x: Math.random() * width,
       y: Math.random() * height,
       radius: Math.random() * 2.5 + 0.5,
-      speedY: Math.random() * 6 + 4, // real winter falling speed
-      speedX: Math.random() * 7 + 5, // steady wind blowing right
-      opacity: Math.random() * 0.8 + 0.2
+      speedY: Math.random() * 25 + 15, // extremely fast
+      speedX: Math.random() * 30 + 20, // blowing sideways hard
+      opacity: Math.random() * 0.7 + 0.1
+    });
+  }
+
+  // Initialize constellations
+  for (let i = 0; i < numStars; i++) {
+    stars.push({
+      baseX: Math.random() * width,
+      baseY: Math.random() * height,
+      x: 0, y: 0,
+      radius: Math.random() * 1.5 + 0.5
     });
   }
 
@@ -56,33 +73,81 @@ const initSnow = () => {
     } else {
       ctx.fillStyle = "rgba(130, 150, 170, 0.85)";
     }
+
+    // Render Magnetic Constellations FIRST (Behind snow)
+    stars.forEach(star => {
+      // Parallax effect based on mouse
+      let px = lastMouse.x !== null ? (lastMouse.x - width/2) * 0.03 : 0;
+      let py = lastMouse.y !== null ? (lastMouse.y - height/2) * 0.03 : 0;
+      
+      star.x = star.baseX - px;
+      star.y = star.baseY - py;
+      
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.fill();
+
+      // Magnetic connections
+      if (lastMouse.x !== null) {
+        let dx = star.x - lastMouse.x;
+        let dy = star.y - lastMouse.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if (dist < 150) {
+          ctx.beginPath();
+          ctx.moveTo(star.x, star.y);
+          ctx.lineTo(lastMouse.x, lastMouse.y);
+          ctx.strokeStyle = `rgba(180, 220, 255, ${(1 - dist/150) * 0.8})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+          
+          stars.forEach(otherStar => {
+            let dx2 = star.x - otherStar.x;
+            let dy2 = star.y - otherStar.y;
+            let dist2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+            if (dist2 < 60 && dist2 > 0) {
+              ctx.beginPath();
+              ctx.moveTo(star.x, star.y);
+              ctx.lineTo(otherStar.x, otherStar.y);
+              ctx.strokeStyle = `rgba(180, 220, 255, ${(1 - dist/150) * 0.4})`;
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          });
+        }
+      }
+    });
     
+    // Render Snowflakes
     snowflakes.forEach(flake => {
       ctx.beginPath();
       ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
       ctx.globalAlpha = flake.opacity;
       ctx.fill();
 
-      if (isAuroraMode) {
-        // Float gently upwards
-        flake.y -= flake.speedY * 0.15;
-        flake.x += Math.sin(flake.y * 0.02) * 1.5;
-        
-        if (flake.y < -10) {
-          flake.y = height + 10;
-          flake.x = Math.random() * width;
-        }
-      } else {
-        flake.x += flake.speedX;
-        flake.y += flake.speedY;
+      if (!isFrozen) {
+        if (isAuroraMode) {
+          // Float gently upwards
+          flake.y -= flake.speedY * 0.15;
+          flake.x += Math.sin(flake.y * 0.02) * 1.5;
+          
+          if (flake.y < -10) {
+            flake.y = height + 10;
+            flake.x = Math.random() * width;
+          }
+        } else {
+          flake.x += flake.speedX;
+          flake.y += flake.speedY;
 
-        if (flake.y > height) {
-          flake.y = -10;
-          flake.x = Math.random() * width * 1.5 - width * 0.5;
-        }
-        if (flake.x > width) {
-          flake.x = -10;
-          flake.y = Math.random() * height * 1.5 - height * 0.5;
+          if (flake.y > height) {
+            flake.y = -10;
+            flake.x = Math.random() * width * 1.5 - width * 0.5;
+          }
+          if (flake.x > width) {
+            flake.x = -10;
+            flake.y = Math.random() * height * 1.5 - height * 0.5;
+          }
         }
       }
     });
@@ -110,6 +175,13 @@ const initSnow = () => {
 
       if (heat > 1500) { // Threshold reached by vigorously scrubbing the mouse
         triggerEasterEgg();
+      }
+    }
+
+    // Idle Freeze Mechanic
+    if (!easterEggTriggered && isStarted.value && !isFrozen) {
+      if (Date.now() - lastActiveTime > 10000) {
+        triggerFreeze();
       }
     }
 
@@ -149,8 +221,41 @@ const triggerEasterEgg = () => {
     gsap.to(".eye-flash", { opacity: 0, duration: 4, ease: "power2.out" });
   }});
   
-  // Gently fade out the aggressive storm audio
+// Gently fade out the aggressive storm audio
   gsap.to(audio, { volume: 0, duration: 2, onComplete: () => audio.pause() });
+};
+
+const triggerFreeze = () => {
+  isFrozen = true;
+  gsap.to(audio, { volume: 0, duration: 2, onComplete: () => audio.pause() });
+  
+  // Fade in ice and clear the fog to reveal constellations
+  gsap.to(".ice-overlay", { opacity: 1, duration: 3, ease: "power2.inOut" });
+  gsap.to(".overlay-fog", { opacity: 0, duration: 3 });
+};
+
+const createCrack = (x, y, level) => {
+  const crack = document.createElement('div');
+  crack.className = 'ice-crack';
+  crack.style.left = `${x}px`;
+  crack.style.top = `${y}px`;
+  crack.style.transform = `translate(-50%, -50%) rotate(${Math.random() * 360}deg) scale(${level * 0.8})`;
+  document.querySelector('.root').appendChild(crack);
+};
+
+const shatterIce = () => {
+  isFrozen = false;
+  clicksOnIce = 0;
+  
+  gsap.set(".eye-flash", { opacity: 1 });
+  gsap.to(".eye-flash", { opacity: 0, duration: 0.5 });
+  
+  gsap.set(".ice-overlay", { opacity: 0 });
+  document.querySelectorAll('.ice-crack').forEach(c => c.remove());
+  
+  audio.play();
+  gsap.to(audio, { volume: 1, duration: 1 });
+  gsap.to(".overlay-fog", { opacity: 0.15, duration: 2 });
 };
 
 const startExperience = () => {
@@ -188,9 +293,27 @@ onMounted(() => {
   initSnow();
   cameraShake();
   
-  window.addEventListener('click', startExperience, { once: true });
+  window.addEventListener('click', (e) => {
+    lastActiveTime = Date.now();
+    
+    if (!isStarted.value) {
+      startExperience();
+      return;
+    }
+    
+    // Ice breaking mechanic
+    if (isFrozen) {
+      clicksOnIce++;
+      createCrack(e.clientX, e.clientY, clicksOnIce);
+      if (clicksOnIce >= 3) {
+        shatterIce();
+      }
+    }
+  });
   
   window.addEventListener('mousemove', (e) => {
+    lastActiveTime = Date.now();
+    
     if (easterEggTriggered || !isStarted.value) return;
     if (lastMouse.x !== null) {
       let dx = e.clientX - lastMouse.x;
@@ -222,6 +345,9 @@ onUnmounted(() => {
       
       <!-- Frost hint overlay -->
       <div class="frost-overlay"></div>
+      
+      <!-- Solid Ice Overlay (When Frozen) -->
+      <div class="ice-overlay"></div>
       
       <!-- Aurora Easter Egg Background -->
       <div class="aurora-bg">
@@ -307,6 +433,20 @@ onUnmounted(() => {
   100% { opacity: 1; }
 }
 
+/* Dynamically injected ice cracks */
+:deep(.ice-crack) {
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50,50 l-30,-40 l-10,-5 m40,45 l30,-35 l10,5 m-40,30 l-40,30 m40,-30 l40,35 m-40,-35 l5,-40 m-5,40 l-5,40 m-15,-60 l30,5 m-40,25 l50,5' stroke='rgba(255,255,255,0.9)' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 100;
+  mix-blend-mode: overlay;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+}
+
 .snow-canvas {
   position: absolute;
   inset: 0;
@@ -358,6 +498,17 @@ onUnmounted(() => {
   backdrop-filter: blur(8px);
   opacity: 0;
   z-index: 25;
+  pointer-events: none;
+}
+
+.ice-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(150, 200, 255, 0.2) 100%);
+  box-shadow: inset 0 0 100px rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(1px); /* Crystal clear ice */
+  opacity: 0;
+  z-index: 30;
   pointer-events: none;
 }
 
