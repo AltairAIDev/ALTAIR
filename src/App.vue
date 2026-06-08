@@ -9,11 +9,23 @@ const audio = new Audio(stormAudio);
 audio.loop = true;
 const lostAudio = new Audio(lostAudioFile);
 lostAudio.loop = true;
+
 let animationId;
 let shakeTween;
 let snowflakes = [];
 const isStarted = ref(false);
 const currentTitleText = ref("WE ARE HUMAN");
+
+// Subtitles
+const currentSubtitle = ref("");
+const subtitles = [
+  "The cold is biting...",
+  "Is anyone there?",
+  "Keep moving...",
+  "Don't let the fire die."
+];
+let subtitleIndex = 0;
+let subtitleInterval;
 
 // Easter egg state
 let easterEggTriggered = false;
@@ -164,6 +176,12 @@ const triggerEasterEgg = () => {
   
   // Gently fade out the aggressive storm audio
   gsap.to(audio, { volume: 0, duration: 2, onComplete: () => audio.pause() });
+  
+  clearTimeout(subtitleInterval);
+  gsap.to(".subtitle", { opacity: 0, duration: 1, onComplete: () => {
+    currentSubtitle.value = "...peace";
+    gsap.to(".subtitle", { opacity: 1, duration: 3, delay: 1 });
+  }});
 };
 
 const startExperience = () => {
@@ -209,7 +227,23 @@ const startExperience = () => {
     .to(".title", { opacity: 1, duration: 1.5, ease: "power2.inOut" })
     .to(".title", { opacity: 0, duration: 1.5, ease: "power2.inOut", delay: 2 })
     .call(() => { currentTitleText.value = "ALTAIR"; })
-    .to(".title", { opacity: 1, duration: 2.5, ease: "power2.inOut" });
+    .to(".title", { opacity: 1, duration: 2.5, ease: "power2.inOut" })
+    .call(() => {
+      // Start Subtitles Cycle
+      const showNextSubtitle = () => {
+        if (subtitleIndex < subtitles.length) {
+          currentSubtitle.value = subtitles[subtitleIndex];
+          subtitleIndex++;
+          gsap.to(".subtitle", { opacity: 1, duration: 1.5, onComplete: () => {
+            // Wait 4 seconds, then fade out and trigger the next one
+            subtitleInterval = setTimeout(() => {
+              gsap.to(".subtitle", { opacity: 0, duration: 1.5, onComplete: showNextSubtitle });
+            }, 4000);
+          }});
+        }
+      };
+      showNextSubtitle(); // Trigger immediately
+    });
 };
 
 onMounted(() => {
@@ -267,6 +301,7 @@ onUnmounted(() => {
       <!-- Content -->
       <div class="content-wrapper">
         <h1 class="title" :class="{ 'long-text': currentTitleText !== 'ALTAIR' }">{{ currentTitleText }}</h1>
+        <p class="subtitle" style="opacity: 0">{{ currentSubtitle }}</p>
       </div>
     </div>
     
@@ -470,6 +505,19 @@ onUnmounted(() => {
 
 .title.long-text {
   font-size: 50px;
+}
+
+.subtitle {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 16px;
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 30px;
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+  text-align: center;
+  position: absolute;
+  bottom: 15vh;
 }
 
 @media (max-width: 768px) {
