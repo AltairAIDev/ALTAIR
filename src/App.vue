@@ -9,7 +9,6 @@ audio.loop = true;
 let animationId;
 let shakeTween;
 let snowflakes = [];
-const numFlakes = 500; // real winter snow
 const isStarted = ref(false);
 
 // Easter egg state
@@ -37,6 +36,8 @@ const initSnow = () => {
   resize();
   window.addEventListener("resize", resize);
 
+  let numFlakes = width < 768 ? 100 : 250;
+  snowflakes = [];
   for (let i = 0; i < numFlakes; i++) {
     snowflakes.push({
       x: Math.random() * width,
@@ -120,10 +121,11 @@ const initSnow = () => {
 };
 
 const cameraShake = () => {
+  if (window.innerWidth < 768) return; // Disable shake on mobile for better performance
   shakeTween = gsap.to(".root", {
-    x: Math.random() * 20 - 10,
-    y: Math.random() * 20 - 10,
-    rotation: Math.random() * 1.5 - 0.75,
+    x: Math.random() * 10 - 5,
+    y: Math.random() * 10 - 5,
+    rotation: Math.random() * 0.5 - 0.25,
     duration: Math.random() * 1.5 + 0.5,
     ease: "sine.inOut",
     onComplete: cameraShake
@@ -189,17 +191,24 @@ onMounted(() => {
   cameraShake();
   
   window.addEventListener('click', startExperience, { once: true });
+  window.addEventListener('touchstart', startExperience, { once: true });
   
-  window.addEventListener('mousemove', (e) => {
+  const handleMove = (e) => {
     if (easterEggTriggered || !isStarted.value) return;
+    let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
     if (lastMouse.x !== null) {
-      let dx = e.clientX - lastMouse.x;
-      let dy = e.clientY - lastMouse.y;
+      let dx = clientX - lastMouse.x;
+      let dy = clientY - lastMouse.y;
       heat += Math.sqrt(dx*dx + dy*dy);
     }
-    lastMouse.x = e.clientX;
-    lastMouse.y = e.clientY;
-  });
+    lastMouse.x = clientX;
+    lastMouse.y = clientY;
+  };
+
+  window.addEventListener('mousemove', handleMove);
+  window.addEventListener('touchmove', handleMove, { passive: true });
 });
 
 onUnmounted(() => {
@@ -340,11 +349,12 @@ onUnmounted(() => {
 .overlay-fog {
   position: absolute;
   inset: -50%;
-  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.005' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
+  background: radial-gradient(circle at center, rgba(255,255,255,0.08) 0%, rgba(200,200,210,0.15) 50%, transparent 100%);
+  background-size: 50% 50%;
   animation: fog-drift 20s linear infinite;
-  mix-blend-mode: multiply;
   pointer-events: none;
   z-index: 20;
+  will-change: transform;
 }
 @keyframes fog-drift {
   0% { transform: translate(0, 0); }
@@ -354,8 +364,7 @@ onUnmounted(() => {
 .frost-overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, transparent 20%, rgba(255,255,255,0.8) 80%, rgba(255,255,255,1) 100%);
-  backdrop-filter: blur(8px);
+  background: radial-gradient(ellipse at center, transparent 20%, rgba(255,255,255,0.85) 70%, rgba(255,255,255,1) 100%);
   opacity: 0;
   z-index: 25;
   pointer-events: none;
@@ -387,5 +396,17 @@ onUnmounted(() => {
   color: #1a202c;
   margin-bottom: 20px;
   text-shadow: 0 0 30px rgba(255, 255, 255, 0.8), 0 0 15px rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 50px;
+    letter-spacing: 0.1em;
+  }
+  .start-prompt p {
+    font-size: 12px;
+    text-align: center;
+    padding: 0 20px;
+  }
 }
 </style>
