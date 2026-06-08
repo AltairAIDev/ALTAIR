@@ -2,10 +2,13 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import gsap from "gsap";
 import stormAudio from "./assets/storm.mp3";
+import lostAudioFile from "./assets/lost.mp3";
 
 const canvasRef = ref(null);
 const audio = new Audio(stormAudio);
 audio.loop = true;
+const lostAudio = new Audio(lostAudioFile);
+lostAudio.loop = true;
 let animationId;
 let shakeTween;
 let snowflakes = [];
@@ -164,6 +167,12 @@ const startExperience = () => {
     audio.play().catch(e => console.error("Audio play failed:", e));
   }
   
+  if (lostAudio.paused) {
+    lostAudio.volume = 0;
+    lostAudio.play().catch(e => console.error("Lost audio play failed:", e));
+    gsap.to(lostAudio, { volume: 0.2, duration: 4, ease: "power2.inOut" });
+  }
+  
   gsap.set(".scene-blur-wrapper", { filter: "blur(15px)" });
   
   const tl = gsap.timeline();
@@ -215,6 +224,7 @@ onUnmounted(() => {
   cancelAnimationFrame(animationId);
   window.removeEventListener("resize", () => {});
   audio.pause();
+  lostAudio.pause();
   if (shakeTween) shakeTween.kill();
 });
 </script>
