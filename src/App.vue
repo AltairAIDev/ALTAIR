@@ -180,6 +180,7 @@ const triggerEasterEgg = () => {
   clearTimeout(subtitleInterval);
   gsap.to(".subtitle", { opacity: 0, duration: 1, onComplete: () => {
     currentSubtitle.value = "...peace";
+    gsap.set(".subtitle", { color: "#c8d8e8", textShadow: "0 0 20px #1a365d, 0 0 10px #4a5568" });
     gsap.to(".subtitle", { opacity: 1, duration: 3, delay: 1 });
   }});
 };
@@ -512,9 +513,9 @@ onUnmounted(() => {
   font-size: 16px;
   font-weight: 300;
   letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.7);
+  color: #1a202c;
   margin-top: 30px;
-  text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.9), 0 0 5px rgba(255, 255, 255, 1);
   text-align: center;
   position: absolute;
   bottom: 15vh;
