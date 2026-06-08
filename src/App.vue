@@ -13,6 +13,7 @@ let animationId;
 let shakeTween;
 let snowflakes = [];
 const isStarted = ref(false);
+const currentTitleText = ref("WE ARE HUMAN");
 
 // Easter egg state
 let easterEggTriggered = false;
@@ -192,7 +193,14 @@ const startExperience = () => {
     // Fade out white flash
     .to(".eye-flash", { opacity: 0, duration: 2.5, ease: "power2.out" }, "open2+=0.4")
     // Fog animation sync
-    .from(".overlay-fog", { opacity: 0, duration: 4, ease: "power1.inOut" }, "open2+=0.4");
+    .from(".overlay-fog", { opacity: 0, duration: 4, ease: "power1.inOut" }, "open2+=0.4")
+    // Title sequence
+    .to(".title", { opacity: 0, duration: 1.5, ease: "power2.inOut", delay: 1 }, "open2+=0.4")
+    .call(() => { currentTitleText.value = "Living not for reality"; })
+    .to(".title", { opacity: 1, duration: 1.5, ease: "power2.inOut" })
+    .to(".title", { opacity: 0, duration: 1.5, ease: "power2.inOut", delay: 2 })
+    .call(() => { currentTitleText.value = "ALTAIR"; })
+    .to(".title", { opacity: 1, duration: 2.5, ease: "power2.inOut" });
 };
 
 onMounted(() => {
@@ -249,7 +257,7 @@ onUnmounted(() => {
 
       <!-- Content -->
       <div class="content-wrapper">
-        <h1 class="title">ALTAIR</h1>
+        <h1 class="title" :class="{ 'long-text': currentTitleText !== 'ALTAIR' }">{{ currentTitleText }}</h1>
       </div>
     </div>
     
@@ -406,12 +414,20 @@ onUnmounted(() => {
   color: #1a202c;
   margin-bottom: 20px;
   text-shadow: 0 0 30px rgba(255, 255, 255, 0.8), 0 0 15px rgba(255, 255, 255, 0.9);
+  text-align: center;
+}
+
+.title.long-text {
+  font-size: 50px;
 }
 
 @media (max-width: 768px) {
   .title {
     font-size: 50px;
     letter-spacing: 0.1em;
+  }
+  .title.long-text {
+    font-size: 30px;
   }
   .start-prompt p {
     font-size: 12px;
