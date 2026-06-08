@@ -57,7 +57,7 @@ const initSnow = () => {
     ctx.clearRect(0, 0, width, height);
 
     if (isAuroraMode) {
-      ctx.fillStyle = "rgba(150, 255, 200, 0.9)"; // magical glowing dust
+      ctx.fillStyle = "rgba(180, 200, 255, 0.6)"; // cold, lonely glowing dust
     } else {
       ctx.fillStyle = "rgba(130, 150, 170, 0.85)";
     }
@@ -148,8 +148,15 @@ const triggerEasterEgg = () => {
     gsap.set(".aurora-bg", { opacity: 1 });
     gsap.set([".overlay-fog", ".frost-overlay"], { display: "none" }); // hide storm fog and frost
     
-    // Change Title aesthetics
-    gsap.set(".title", { color: "#e0ffff", textShadow: "0 0 30px #00ff88, 0 0 10px #ffffff" });
+    // Open up the cinematic aspect ratio
+    gsap.to([".letterbox-top", ".letterbox-bottom"], { height: "0vh", duration: 3, ease: "power2.inOut" });
+    
+    // Change Title aesthetics and text
+    gsap.to(".title", { opacity: 0, duration: 1, onComplete: () => {
+      currentTitleText.value = "You are alone here";
+      gsap.set(".title", { color: "#c8d8e8", textShadow: "0 0 40px #1a365d, 0 0 15px #4a5568" });
+      gsap.to(".title", { opacity: 1, duration: 3, ease: "power2.inOut" });
+    }});
     
     // Fade flash back out to reveal
     gsap.to(".eye-flash", { opacity: 0, duration: 4, ease: "power2.out" });
@@ -194,6 +201,8 @@ const startExperience = () => {
     .to(".eye-flash", { opacity: 0, duration: 2.5, ease: "power2.out" }, "open2+=0.4")
     // Fog animation sync
     .from(".overlay-fog", { opacity: 0, duration: 4, ease: "power1.inOut" }, "open2+=0.4")
+    // Cinematic Letterbox
+    .to([".letterbox-top", ".letterbox-bottom"], { height: "12vh", duration: 3, ease: "power3.inOut" }, "open2+=0.4")
     // Title sequence
     .to(".title", { opacity: 0, duration: 1.5, ease: "power2.inOut", delay: 1 }, "open2+=0.4")
     .call(() => { currentTitleText.value = "Living not for reality"; })
@@ -264,6 +273,10 @@ onUnmounted(() => {
     <!-- Cinematic Opening -->
     <div class="eyelid-hole"></div>
     <div class="eye-flash"></div>
+    
+    <!-- Cinematic Enhancements -->
+    <div class="letterbox-top"></div>
+    <div class="letterbox-bottom"></div>
     
     <!-- Start Prompt -->
     <div v-if="!isStarted" class="start-prompt">
@@ -345,23 +358,23 @@ onUnmounted(() => {
 .aurora-bg {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, #020611 0%, #0a2120 50%, #104231 100%);
+  background: radial-gradient(circle at center, #0a0f18 0%, #000000 100%);
   opacity: 0; /* Hidden until triggered */
   z-index: 5;
   pointer-events: none;
 }
 .aurora-ribbons {
   position: absolute;
-  inset: -50%;
-  width: 200%; height: 200%;
-  background: repeating-linear-gradient(45deg, transparent, rgba(0, 255, 150, 0.15) 10%, transparent 20%);
-  filter: blur(40px);
-  animation: aurora-wave 30s linear infinite;
+  inset: 0;
+  width: 100%; height: 100%;
+  background: radial-gradient(circle at center, rgba(150, 180, 255, 0.06) 0%, transparent 60%);
+  filter: blur(20px);
+  animation: void-breathe 8s ease-in-out infinite alternate;
   mix-blend-mode: screen;
 }
-@keyframes aurora-wave {
-  0% { transform: translateX(0) rotate(0deg); }
-  100% { transform: translateX(-20%) rotate(5deg); }
+@keyframes void-breathe {
+  0% { transform: scale(1); opacity: 0.3; }
+  100% { transform: scale(1.3); opacity: 0.8; }
 }
 
 .overlay-fog {
@@ -394,7 +407,45 @@ onUnmounted(() => {
   z-index: 20;
   pointer-events: none;
   background: radial-gradient(ellipse at center, transparent 20%, rgba(255, 255, 255, 0.85) 100%);
+  animation: heartbeat-vignette 4s infinite ease-in-out;
 }
+
+@keyframes heartbeat-vignette {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Cinematic Features */
+.film-grain {
+  position: fixed;
+  inset: -100%;
+  z-index: 9999;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.12;
+  animation: noise-anim 0.4s steps(4) infinite;
+  mix-blend-mode: multiply;
+}
+@keyframes noise-anim {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-5%, -5%); }
+  50% { transform: translate(5%, 5%); }
+  75% { transform: translate(-5%, 5%); }
+  100% { transform: translate(5%, -5%); }
+}
+
+.letterbox-top, .letterbox-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 0vh; /* Controlled by GSAP */
+  background: #000;
+  z-index: 9990; /* Under the film grain and flash, above content */
+  pointer-events: none;
+}
+.letterbox-top { top: 0; }
+.letterbox-bottom { bottom: 0; }
 
 .content-wrapper {
   position: absolute;
